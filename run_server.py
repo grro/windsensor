@@ -1,6 +1,6 @@
 import sys
 import logging
-from webthing import (SingleThing, Property, Thing, Value, WebThingServer)
+from webthing import (SingleThing, WebThingServer)
 from eltako import EltakoWsSensor
 from eltako_mcp import EltakoMCPServer
 from eltako_webthing import EltakoWsSensorThing
@@ -8,7 +8,7 @@ from eltako_webthing import EltakoWsSensorThing
 
 def run_server(port: int, gpio_number: int):
     sensor = EltakoWsSensor(gpio_number)
-    mcp_server = EltakoMCPServer('Windsensor', port+2, sensor)
+    mcp_server = EltakoMCPServer(port+2, sensor)
     webthing_server = WebThingServer(SingleThing(EltakoWsSensorThing(sensor)), port=port, disable_host_validation=True)
 
     try:
