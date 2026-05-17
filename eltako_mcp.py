@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import threading
-from typing import Protocol, Dict
+from typing import Protocol, cast, List, Dict
 from fastmcp import FastMCP
-from pydantic import TypeAdapter, AnyUrl
+from pydantic import AnyUrl, TypeAdapter
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 import socket
 from eltako import EltakoWsSensor
@@ -79,20 +79,39 @@ class EltakoMCPServer:
         self.sensor.add_listener(self.__on_value_changed)
 
 
+        @self.mcp.resource("sensor://windspeed")
+        def get_current_windspeed() -> str:
+            """Provides the absolute real-time wind speed entry point.
+
+            When clients read this endpoint, their subscription channel is
+            dynamically caught and registered to receive automatic server-side pushes.
+            """
+            try:
+                req_ctx = self.low_level_server.request_context
+                if req_ctx and req_ctx.session and req_ctx.session not in self.active_sessions:
+                    # Dynamically append active channel handle to our observer pool
+                    self.active_sessions.add(cast(ResourceUpdateSession, req_ctx.session))
+                    logger.info("[Server] Client session registered for updates (Resource: %s).", self.name)
+            except Exception as e:
+                logger.debug("[Server] Could not extract session metadata: %s", e)
+
+            return str(self.sensor.windspeed_kmh)
+
+        
         @self.mcp.tool()
         def get_wind_status() -> str:
-            """
-            Returns the current wind speed data for various time intervals.
-            """
+            """Returns historical wind speed averages compiled over multiple granular windows.
 
-            status = (
+            Use this tool when evaluating broader meteorological trends, such as verifying
+            if persistent wind gusts require retracting awnings or external blinds.
+            """
+            return (
                 f"1min average: {self.sensor.windspeed_kmh_1min_granularity} km/h, "
                 f"30s average: {self.sensor.windspeed_kmh_30sec_granularity} km/h, "
                 f"10s average: {self.sensor.windspeed_kmh_10sec_granularity} km/h, "
                 f"5s average: {self.sensor.windspeed_kmh_5sec_granularity} km/h, "
                 f"Current speed: {self.sensor.windspeed_kmh} km/h"
             )
-            return status
 
 
     def __on_value_changed(self):
