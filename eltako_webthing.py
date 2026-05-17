@@ -22,7 +22,7 @@ class EltakoWsSensorThing(Thing):
         )
 
         self.sensor = sensor
-        self.sensor.set_listener(self.on_value_changed)
+        self.sensor.add_listener(self.on_value_changed)
         self.ioloop = tornado.ioloop.IOLoop.current()
 
         self.windspeed = Value(self.sensor.windspeed_kmh)

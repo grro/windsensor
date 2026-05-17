@@ -29,7 +29,7 @@ class EltakoWsSensor:
     def __init__(self, gpio_number: int):
         logging.info("listening on GPIO " + str(gpio_number))
         self.gpio_number = gpio_number
-        self.__listener = lambda: None
+        self.__listeners = set()
         self.start_time = time.time()
         self.num_raise_events = 0
         self.windspeed_kmh = 0
@@ -44,11 +44,12 @@ class EltakoWsSensor:
         Thread(target=self.__measure_loop, daemon=True).start()
 
 
-    def set_listener(self, listener):
-        self.__listener = listener
+    def add_listener(self, listener):
+        self.__listeners.add(listener)
 
     def __notify_listener(self):
-        self.__listener()
+        for listener in self.__listeners:
+            listener()
 
     def __spin(self, channel):
         self.num_raise_events = self.num_raise_events + 1
