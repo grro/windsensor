@@ -1,7 +1,6 @@
 # Windsensor
 
 Read wind speed from an [Eltako wind sensor](https://www.eltako.com/fileadmin/downloads/en/_datasheets/Datasheet_WS.pdf) on a Raspberry Pi and expose the measurements through:
-
 - a **WebThing HTTP API**
 - an **MCP server** over **SSE**
 
@@ -28,8 +27,7 @@ and measured continuously in the background.
 - Raspberry Pi with accessible GPIO
 - Eltako wind sensor wired to a GPIO input pin
 
-For wiring background and hardware examples, see:
-
+For wiring background and hardware examples, see
 - [Measure Wind Speed with Eltako Windsensor and Win10 IoT Core](https://www.hackster.io/daniel-kreuzhofer/measure-wind-speed-with-eltako-windsensor-and-win10-iot-core-e1e42a)
 
 ### Software
