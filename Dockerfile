@@ -1,6 +1,6 @@
 FROM python:3.11
 
-ENV port 8080
+ENV port 9860
 
 RUN cd /etc
 RUN mkdir app
