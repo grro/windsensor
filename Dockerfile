@@ -1,15 +1,18 @@
 FROM python:3.11-slim
 
 ENV port=9860
+ENV chip=gpiochip0
+ENV gpio=11
 
 WORKDIR /app
 
+COPY requirements.txt .
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends libgpiod2 \
+	&& apt-get install -y --no-install-recommends build-essential \
+	&& pip install --no-cache-dir -r requirements.txt \
+	&& apt-get purge -y --auto-remove build-essential \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 COPY *.py .
 

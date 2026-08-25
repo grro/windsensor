@@ -1,10 +1,9 @@
 import logging
 import time
+import importlib
 from datetime import timedelta
 from threading import Lock, Thread
 from time import sleep
-
-import gpiod
 
 
 class RingBuffer:
@@ -32,6 +31,7 @@ class EltakoWsSensor:
         logging.info("listening on GPIO line offset " + str(gpio_number) + " on " + chip_name)
         self.gpio_number = gpio_number
         self.chip_name = chip_name
+        self.__gpiod = self.__load_gpiod()
         self.__listeners = set()
         self.start_time = time.monotonic()
         self.num_raise_events = 0
@@ -54,6 +54,12 @@ class EltakoWsSensor:
         Thread(target=self.__edge_loop, daemon=True).start()
         Thread(target=self.__measure_loop, daemon=True).start()
 
+    def __load_gpiod(self):
+        try:
+            return importlib.import_module("gpiod")
+        except ModuleNotFoundError as error:
+            raise RuntimeError("Missing dependency 'gpiod'. Install requirements.txt to enable GPIO access.") from error
+
     def __setup_gpio(self):
         try:
             self.__setup_gpio_v1()
@@ -66,22 +72,22 @@ class EltakoWsSensor:
         self.__gpiod_backend = "v2"
 
     def __setup_gpio_v1(self):
-        self.__chip = gpiod.Chip(self.chip_name)
+        self.__chip = self.__gpiod.Chip(self.chip_name)
         self.__line = self.__chip.get_line(self.gpio_number)
-        self.__line.request(consumer="eltako-ws-sensor", type=gpiod.LINE_REQ_EV_RISING_EDGE)
+        self.__line.request(consumer="eltako-ws-sensor", type=self.__gpiod.LINE_REQ_EV_RISING_EDGE)
 
     def __setup_gpio_v2(self):
         chip_path = self.chip_name if self.chip_name.startswith("/dev/") else f"/dev/{self.chip_name}"
-        line_settings = gpiod.LineSettings()
+        line_settings = self.__gpiod.LineSettings()
 
-        if hasattr(gpiod, "line") and hasattr(gpiod.line, "Direction"):
-            line_settings.direction = gpiod.line.Direction.INPUT
-        if hasattr(gpiod, "line") and hasattr(gpiod.line, "Edge"):
-            line_settings.edge_detection = gpiod.line.Edge.RISING
+        if hasattr(self.__gpiod, "line") and hasattr(self.__gpiod.line, "Direction"):
+            line_settings.direction = self.__gpiod.line.Direction.INPUT
+        if hasattr(self.__gpiod, "line") and hasattr(self.__gpiod.line, "Edge"):
+            line_settings.edge_detection = self.__gpiod.line.Edge.RISING
         if hasattr(line_settings, "debounce_period"):
             line_settings.debounce_period = timedelta(milliseconds=5)
 
-        self.__line_request = gpiod.request_lines(
+        self.__line_request = self.__gpiod.request_lines(
             chip_path,
             consumer="eltako-ws-sensor",
             config={self.gpio_number: line_settings},
