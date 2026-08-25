@@ -1,14 +1,12 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-ENV port 9860
+ENV port=9860
 
-RUN cd /etc
-RUN mkdir app
-WORKDIR /etc/app
-ADD *.py /etc/app/
-ADD requirements.txt /etc/app/.
-RUN pip install -r requirements.txt
+WORKDIR /app
 
-CMD python /etc/app/run_server.py $port $gpio
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+COPY *.py .
 
+CMD ["sh", "-c", "python /app/run_server.py $port $gpio"]

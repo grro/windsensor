@@ -38,7 +38,7 @@ class EltakoWsSensor:
         self.__10sec_buffer= RingBuffer(round(10/self.__measure_period_sec))
         self.__30sec_buffer= RingBuffer(round(30/self.__measure_period_sec))
         self.__1min_buffer= RingBuffer(round(60/self.__measure_period_sec))
-        GPIO.setmode(GPIO.BCM)
+        GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.gpio_number, GPIO.IN)
         GPIO.add_event_detect(self.gpio_number, GPIO.RISING, callback=self.__spin, bouncetime=5)
         Thread(target=self.__measure_loop, daemon=True).start()
