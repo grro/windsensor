@@ -122,17 +122,19 @@ class EltakoWsSensor:
             return self.__line.event_wait(timeout=1)
 
     def __read_edge_events_v2(self):
-        if hasattr(self.__line_request, "read_edge_events"):
-            try:
-                events = self.__line_request.read_edge_events(timeout=timedelta(seconds=1))
-            except TypeError:
-                events = self.__line_request.read_edge_events(timeout=1)
-            return events or []
-
-        if hasattr(self.__line_request, "wait_edge_events") and self.__line_request.wait_edge_events(timeout=timedelta(seconds=1)):
+        if hasattr(self.__line_request, "wait_edge_events"):
+            if not self.__wait_edge_events_v2():
+                return []
             return self.__line_request.read_edge_events() or []
 
-        return []
+        # Fallback for bindings without wait_edge_events: blocking read
+        return self.__line_request.read_edge_events() or []
+
+    def __wait_edge_events_v2(self) -> bool:
+        try:
+            return self.__line_request.wait_edge_events(timedelta(seconds=1))
+        except TypeError:
+            return self.__line_request.wait_edge_events(1)
 
     def __spin(self):
         now = time.monotonic()
