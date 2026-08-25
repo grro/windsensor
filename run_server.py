@@ -42,9 +42,16 @@ if __name__ == '__main__':
     try:
         logging.basicConfig(format='%(asctime)s %(name)-20s: %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
         logging.getLogger('tornado.access').setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
-        logging.getLogger("mcp.server.lowlevel").setLevel(logging.WARNING)
-        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+        logging.getLogger('starlette.middleware.base').setLevel(logging.WARNING)
+        logging.getLogger('fastmcp').setLevel(logging.WARNING)
+        logging.getLogger('mcp').setLevel(logging.WARNING)
+        logging.getLogger('mcp.server').setLevel(logging.WARNING)
+        logging.getLogger('mcp.server.lowlevel.server').setLevel(logging.WARNING)
+        logging.getLogger('uvicorn.access').disabled = True
+        logging.getLogger('uvicorn.error').setLevel(logging.WARNING)
+        logging.getLogger('uvicorn').setLevel(logging.WARNING)
         port = int(sys.argv[1])
         chip_name, gpio_number = parse_gpio_args(sys.argv[2:])
         run_server(port, chip_name, gpio_number)
