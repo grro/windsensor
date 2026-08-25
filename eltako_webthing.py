@@ -124,9 +124,9 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(asctime)s %(name)-20s: %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
         logging.getLogger('tornado.access').setLevel(logging.ERROR)
         logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
+        from run_server import parse_gpio_args
         port = int(sys.argv[1])
-        chip_name = sys.argv[2] if len(sys.argv) > 3 else 'gpiochip0'
-        gpio_number = int(sys.argv[3]) if len(sys.argv) > 3 else int(sys.argv[2])
+        chip_name, gpio_number = parse_gpio_args(sys.argv[2:])
         run_server(port, gpio_number, chip_name)
     except Exception as e:
         logging.error(str(e))

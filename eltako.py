@@ -28,7 +28,7 @@ class RingBuffer:
 class EltakoWsSensor:
 
     def __init__(self, chip_name: str,  gpio_number: int):
-        logging.info("listening on GPIO line offset " + str(gpio_number) + " on " + chip_name)
+        logging.info("listening on GPIO  " + chip_name + "#" + str(gpio_number))
         self.gpio_number = gpio_number
         self.chip_name = chip_name
         self.__gpiod = self.__load_gpiod()

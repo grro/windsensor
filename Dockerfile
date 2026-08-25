@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
 ENV port=9860
-ENV chip=gpiochip0
-ENV gpio=11
+ENV addr=gpiochip0#11
+
 
 WORKDIR /app
 
@@ -16,4 +16,4 @@ RUN apt-get update \
 
 COPY *.py .
 
-CMD ["sh", "-c", "python /app/run_server.py $port $chip $gpio"]
+CMD ["sh", "-c", "python /app/run_server.py $port $addr"]
