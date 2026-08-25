@@ -4,7 +4,7 @@ Read wind speed from an [Eltako wind sensor](https://www.eltako.com/fileadmin/do
 - a **WebThing HTTP API**
 - an **MCP server** over **SSE**
 
-This project is designed for **Raspberry Pi / Linux GPIO environments**. The sensor is connected to a GPIO pin 
+This project is designed for **Raspberry Pi / Linux GPIO environments**. The sensor is connected to a GPIO line
 and measured continuously in the background.
 
 ## Features
@@ -34,4 +34,9 @@ For wiring background and hardware examples, see
 
 - Python 3.x
 - Linux / Raspberry Pi OS recommended
-- GPIO access for the selected pin
+- Access to `/dev/gpiochip*` (libgpiod)
+
+### GPIO numbering
+
+- The second CLI argument is the **GPIO line offset** (libgpiod), not `RPi.GPIO` BOARD numbering.
+- Example for BCM17 on `gpiochip0`: line offset `17`.

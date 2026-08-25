@@ -115,6 +115,8 @@ def run_server(port: int, gpio_number: int):
         mcp_server.stop()
         server.stop()
         logging.info('done')
+    finally:
+        sensor.close()
 
 
 if __name__ == '__main__':
