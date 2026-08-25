@@ -44,6 +44,7 @@ if __name__ == '__main__':
         logging.getLogger('tornado.access').setLevel(logging.ERROR)
         logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
         logging.getLogger("mcp.server.lowlevel").setLevel(logging.WARNING)
+        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
         port = int(sys.argv[1])
         chip_name, gpio_number = parse_gpio_args(sys.argv[2:])
         run_server(port, chip_name, gpio_number)
