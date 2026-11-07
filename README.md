@@ -40,3 +40,26 @@ For wiring background and hardware examples, see
 
 - The second CLI argument is the **GPIO line offset** (libgpiod), not `RPi.GPIO` BOARD numbering.
 - Example for BCM17 on `gpiochip0`: line offset `17`.
+
+## Docker on Raspberry Pi Zero 2 W
+
+Use a 64-bit Raspberry Pi OS: the published Docker image targets `linux/arm64/v8`.
+Run the container with access to the GPIO device and host networking; host networking
+also allows the MCP service to advertise itself over mDNS:
+
+```sh
+docker run -d \
+  --name windsensor \
+  --restart unless-stopped \
+  --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
+  --network host \
+  --device /dev/gpiochip0:/dev/gpiochip0 \
+  -e "addr=gpiochip0#11" \
+  grro/windsensor:<release-tag>
+```
+
+Replace `11` with the GPIO line offset used by the sensor and `<release-tag>` with a
+published release tag. The container defaults to port `9860` for WebThing and `9862`
+for MCP; `port` can be overridden with an environment variable. Python bytecode
+generation is disabled and container logs are size-limited to reduce writes to the Pi's SD card.
+Instead of `--device`, `--privileged` also grants GPIO access, but exposes all host devices.
