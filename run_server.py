@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from webthing import (SingleThing, WebThingServer)
@@ -66,6 +67,7 @@ if __name__ == '__main__':
         logging.getLogger('uvicorn.access').disabled = True
         logging.getLogger('uvicorn.error').setLevel(logging.WARNING)
         logging.getLogger('uvicorn').setLevel(logging.WARNING)
+        logging.info('windsensor version %s', os.environ.get('WINDSENSOR_VERSION', 'dev'))
         port = int(sys.argv[1])
         chip_name, gpio_number = parse_gpio_args(sys.argv[2:])
         run_server(port, chip_name, gpio_number)
