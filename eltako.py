@@ -1,27 +1,33 @@
 import logging
+import math
 import time
 import importlib
+from collections import deque
 from datetime import timedelta
-from threading import Lock, Thread
-from time import sleep
+from threading import Event, Lock, Thread
 
 
 class RingBuffer:
 
     def __init__(self, size: int):
-        self.buffer =  [5] * size
-        self.pos = 0
+        self.__values = deque(maxlen=size)
+        self.__lock = Lock()
 
     def add(self, value: int):
-        if self.pos >= len(self.buffer):
-            self.pos = 0
-        self.buffer[self.pos] = value
-        self.pos += 1
+        with self.__lock:
+            self.__values.append(value)
 
     @property
     def median(self) -> int:
-        values = sorted(list(self.buffer))
-        return values[round(len(values) * 0.5)]
+        with self.__lock:
+            values = sorted(self.__values)
+        if not values:
+            return 0
+        mid = len(values) // 2
+        if len(values) % 2 == 1:
+            return values[mid]
+        # round half up; values are non-negative
+        return int((values[mid - 1] + values[mid]) / 2 + 0.5)
 
 
 
@@ -40,10 +46,10 @@ class EltakoWsSensor:
         self.__last_spin_time = 0.0
         self.__counter_lock = Lock()
         self.__measure_period_sec = 2
-        self.__5sec_buffer= RingBuffer(round(5/self.__measure_period_sec))
-        self.__10sec_buffer= RingBuffer(round(10/self.__measure_period_sec))
-        self.__30sec_buffer= RingBuffer(round(30/self.__measure_period_sec))
-        self.__1min_buffer= RingBuffer(round(60/self.__measure_period_sec))
+        self.__5sec_buffer = RingBuffer(self.__buffer_size(5))
+        self.__10sec_buffer = RingBuffer(self.__buffer_size(10))
+        self.__30sec_buffer = RingBuffer(self.__buffer_size(30))
+        self.__1min_buffer = RingBuffer(self.__buffer_size(60))
 
         self.__gpiod_backend = None
         self.__chip = None
@@ -51,8 +57,14 @@ class EltakoWsSensor:
         self.__line_request = None
         self.__setup_gpio()
 
-        Thread(target=self.__edge_loop, daemon=True).start()
-        Thread(target=self.__measure_loop, daemon=True).start()
+        self.__stopped = Event()
+        self.__threads = [Thread(target=self.__edge_loop, name="gpio-edge", daemon=True),
+                          Thread(target=self.__measure_loop, name="gpio-measure", daemon=True)]
+        for thread in self.__threads:
+            thread.start()
+
+    def __buffer_size(self, window_sec: int) -> int:
+        return max(1, math.ceil(window_sec / self.__measure_period_sec))
 
     def __load_gpiod(self):
         try:
@@ -102,7 +114,7 @@ class EltakoWsSensor:
             listener()
 
     def __edge_loop(self):
-        while True:
+        while not self.__stopped.is_set():
             try:
                 if self.__gpiod_backend == "v1":
                     if self.__wait_for_event_v1():
@@ -112,8 +124,10 @@ class EltakoWsSensor:
                     for _ in self.__read_edge_events_v2():
                         self.__spin()
             except Exception as e:
+                if self.__stopped.is_set():
+                    break
                 logging.error("edge loop failed: %s", str(e))
-                sleep(0.2)
+                self.__stopped.wait(0.2)
 
     def __wait_for_event_v1(self) -> bool:
         try:
@@ -169,7 +183,13 @@ class EltakoWsSensor:
             logging.error(e)
             return 0
 
-    def close(self):
+    def close(self, timeout_sec: float = 2):
+        self.__stopped.set()
+        for thread in self.__threads:
+            thread.join(timeout_sec)
+            if thread.is_alive():
+                logging.warning("thread %s did not stop within %s sec", thread.name, timeout_sec)
+
         try:
             if self.__line_request is not None and hasattr(self.__line_request, "release"):
                 self.__line_request.release()
@@ -189,7 +209,7 @@ class EltakoWsSensor:
             logging.debug("closing gpiod chip failed", exc_info=True)
 
     def __measure_loop(self):
-        while True:
+        while not self.__stopped.wait(self.__measure_period_sec):
             try:
                 self.windspeed_kmh = self.__measure()
                 self.__5sec_buffer.add(self.windspeed_kmh)
@@ -199,7 +219,6 @@ class EltakoWsSensor:
                 self.__notify_listener()
             except Exception as e:
                 logging.error(str(e))
-            sleep(self.__measure_period_sec)
 
     @property
     def windspeed_kmh_10sec_granularity(self) -> int:

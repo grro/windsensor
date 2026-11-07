@@ -8,20 +8,34 @@ from eltako_webthing import EltakoWsSensorThing
 
 def run_server(port: int, chip_name: str, gpio_number: int):
     sensor = EltakoWsSensor(gpio_number=gpio_number, chip_name=chip_name)
-    mcp_server = EltakoMCPServer(port+2, sensor)
-    webthing_server = WebThingServer(SingleThing(EltakoWsSensorThing(sensor)), port=port, disable_host_validation=True)
-
+    mcp_server = None
+    webthing_server = None
     try:
+        mcp_server = EltakoMCPServer(port+2, sensor)
+        webthing_server = WebThingServer(SingleThing(EltakoWsSensorThing(sensor)), port=port, disable_host_validation=True)
         mcp_server.start()
         logging.info('starting the server')
         webthing_server.start()
     except KeyboardInterrupt:
         logging.info('stopping the server')
-        mcp_server.stop()
-        webthing_server.stop()
-        logging.info('done')
     finally:
+        if webthing_server is not None:
+            _stop_webthing(webthing_server)
+        if mcp_server is not None:
+            mcp_server.stop()
         sensor.close()
+        logging.info('done')
+
+
+def _stop_webthing(webthing_server: WebThingServer):
+    # stop() fails if start() aborted before the zeroconf registration
+    try:
+        if hasattr(webthing_server, 'zeroconf'):
+            webthing_server.stop()
+        else:
+            webthing_server.server.stop()
+    except Exception as e:
+        logging.warning('stopping the webthing server failed: %s', e)
 
 
 def parse_gpio_args(args, chip_default: str = 'gpiochip0'):

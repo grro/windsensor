@@ -11,6 +11,8 @@ from eltako import EltakoWsSensor
 
 logger = logging.getLogger(__name__)
 
+WINDSPEED_URI = TypeAdapter(AnyUrl).validate_python("sensor://windspeed")
+
 
 class MDNS:
 
@@ -101,6 +103,7 @@ class EltakoMCPServer:
         self.loop = asyncio.new_event_loop()
         self.__server_task: Optional[asyncio.Task] = None
         self.__thread: Optional[threading.Thread] = None
+        self.__last_notified_windspeed: Optional[int] = None
         self.sensor.add_listener(self.__on_value_changed)
 
 
@@ -140,6 +143,10 @@ class EltakoMCPServer:
 
 
     def __on_value_changed(self):
+        windspeed = self.sensor.windspeed_kmh
+        if windspeed == self.__last_notified_windspeed:
+            return
+        self.__last_notified_windspeed = windspeed
         if self.loop.is_running():
             try:
                 asyncio.run_coroutine_threadsafe(self._trigger_client_notification(), self.loop)
@@ -153,9 +160,10 @@ class EltakoMCPServer:
             return
 
         dead_sessions = set()
-        for session in self.active_sessions:
+        # copy: new sessions may register while awaiting
+        for session in list(self.active_sessions):
             try:
-                await session.send_resource_updated(TypeAdapter(AnyUrl).validate_python("sensor://windspeed"))
+                await session.send_resource_updated(WINDSPEED_URI)
             except Exception as e:
                 logger.warning("[Server] Client not reachable: %s", e)
                 dead_sessions.add(session)

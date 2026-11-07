@@ -1,9 +1,6 @@
-import sys
-import logging
 import tornado.ioloop
-from webthing import (SingleThing, Property, Thing, Value, WebThingServer)
+from webthing import (Property, Thing, Value)
 from eltako import EltakoWsSensor
-from eltako_mcp import EltakoMCPServer
 
 
 
@@ -99,36 +96,3 @@ class EltakoWsSensorThing(Thing):
         self.windspeed_10sec.notify_of_external_update(self.sensor.windspeed_kmh_10sec_granularity)
         self.windspeed_30sec.notify_of_external_update(self.sensor.windspeed_kmh_30sec_granularity)
         self.windspeed_1min.notify_of_external_update(self.sensor.windspeed_kmh_1min_granularity)
-
-
-def run_server(port: int, gpio_number: int, chip_name: str):
-    sensor = EltakoWsSensor(gpio_number=gpio_number, chip_name=chip_name)
-    mcp_server = EltakoMCPServer(port+2, sensor)
-    server = WebThingServer(SingleThing(EltakoWsSensorThing(sensor)), port=port, disable_host_validation=True)
-
-    try:
-        mcp_server.start()
-        logging.info('starting the server')
-        server.start()
-    except KeyboardInterrupt:
-        logging.info('stopping the server')
-        mcp_server.stop()
-        server.stop()
-        logging.info('done')
-    finally:
-        sensor.close()
-
-
-if __name__ == '__main__':
-    try:
-        logging.basicConfig(format='%(asctime)s %(name)-20s: %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-        logging.getLogger('tornado.access').setLevel(logging.ERROR)
-        logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
-        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-        from run_server import parse_gpio_args
-        port = int(sys.argv[1])
-        chip_name, gpio_number = parse_gpio_args(sys.argv[2:])
-        run_server(port, gpio_number, chip_name)
-    except Exception as e:
-        logging.error(str(e))
-        raise e
